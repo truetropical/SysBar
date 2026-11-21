@@ -1,5 +1,5 @@
 # SysBar — Hardware Monitor for Windows 
-**By [Mutant Wizard](https://mrwizard2u.github.io/)**<br><br><br>
+**By [Mutant Wizard](https://truetropical.github.io/)**<br><br><br>
 
 **Live CPU, GPU, RAM, Network and Disk stats — right on your Windows taskbar.**
 
@@ -25,10 +25,10 @@ SysBar is a lightweight, transparent taskbar widget that displays real-time hard
 
 | | |
 |---|---|
-| **Website** | [mrwizard2u.github.io](https://mrwizard2u.github.io/) |
-| **Privacy Policy** | [mrwizard2u.github.io/privacy.html](https://mrwizard2u.github.io/privacy.html) |
-| **License** |[mrwizard2u.github.io/license.html](https://mrwizard2u.github.io/license) |
-| ☕ **Support the Project** |[mrwizard2u.github.io/donate.html](https://mrwizard2u.github.io/donate.html) |
+| **Website** | [truetropical.github.io](https://truetropical.github.io/) |
+| **Privacy Policy** | [truetropical.github.io/privacy.html](https://truetropical.github.io/privacy.html) |
+| **License** |[truetropical.github.io/license.html](https://truetropical.github.io/license.html) |
+| ☕ **Support the Project** |[truetropical.github.io/donate.html](https://truetropical.github.io/donate.html) |
 
 ---
 
@@ -152,25 +152,25 @@ For full build documentation, architecture details, and contributing guidelines 
 
 SysBar does not collect, transmit, or store any personal data. It makes no outbound network connections. All sensor data is fetched from LibreHardwareMonitor running locally on the same machine via loopback (`127.0.0.1`).
 
-Full privacy policy: [mrwizard2u.github.io/privacy.html](https://mrwizard2u.github.io/privacy.html)
+Full privacy policy: [truetropical.github.io/privacy.html](https://truetropical.github.io/privacy.html)
 
 ---
 
 ## Support the Project
 
-SysBar is free and open source. If it saves you time or you find it useful, consider supporting development. Any even smallest amout is greatly appreciated:[☕ Donate — mrwizard2u.github.io/donate.html](https://mrwizard2u.github.io/donate.html)
+SysBar is free and open source. If it saves you time or you find it useful, consider supporting development. Any even smallest amout is greatly appreciated:[☕ Donate — truetropical.github.io/donate.html](https://truetropical.github.io/donate.html)
 
 ---
 
 ## Licence
 
-Copyright © 2026 Mutant Wizard ([mrwizard2u.github.io](https://mrwizard2u.github.io/))
+Copyright © 2026 Mutant Wizard ([truetropical.github.io](https://truetropical.github.io/))
 
 This software is provided under a custom MIT-based licence. You are free to use, copy, modify, and redistribute this software — including as part of a larger product or service — subject to the following conditions:
 
 - The software in its **original unmodified form** may not be sold or distributed as a standalone commercial product without prior written permission from the author.
 - All distributed copies must include this licence and the original copyright notice.
-- All redistributions must credit the original author: *"Original software by Mutant Wizard (https://mrwizard2u.github.io)"*
+- All redistributions must credit the original author: *"Original software by Mutant Wizard (https://truetropical.github.io)"*
 - Modified versions must be clearly marked as changed.
 
-See [License](https://mrwizard2u.github.io/license) for the full licence text.
+See [License](https://truetropical.github.io/license.html) for the full licence text.
