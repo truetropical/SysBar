@@ -6,7 +6,7 @@ SysBar is a lightweight, transparent taskbar widget that displays real-time hard
 
 ## Preview
 
-Screenshots show an earlier release. See the configuration guide below for the current Free menus.
+The app screenshots show SysBar Free v1.3.0. The web guide preview is from an earlier release.
 
 **Main Interface**
 
