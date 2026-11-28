@@ -10,7 +10,7 @@
 
 static const int  COL_WIDTH    = 70;
 static const int  MIN_COLS     = 1;
-static const int  MAX_COLS     = 6;
+static const int  MAX_COLS     = 3;
 static const int  MAX_PARAMS   = 10;
 static const int  DEFAULT_PORT = 8085;
 
@@ -68,6 +68,9 @@ struct Config
 {
     int  lhmPort          = DEFAULT_PORT;
     bool enabled[P_COUNT] = {};
+    int columnLimit() const {
+        return MAX_COLS;
+    }
     bool autoStart        = false; // Added Auto-Start
 
     std::string gpuPath;
@@ -89,6 +92,7 @@ struct Config
         enabled[P_GPU_POWER]      = false;
         enabled[P_DISK_READWRITE] = false;
         enabled[P_NET_UPDOWN]     = true;
+        enabled[P_NET_UPDOWN]     = false;
     }
 
     int enabledCount() const

@@ -51,6 +51,10 @@ static std::string WideToNarrow(const wchar_t* w)
     return s;
 }
 
+static const wchar_t* const EDITION_INI_NAME = L"TaskbarWidget.Free.ini";
+static const wchar_t* const EDITION_FALLBACK_EXT = L".Free.ini";
+static const wchar_t* const EDITION_RUN_NAME = L"SysBar.Free";
+
 std::wstring GetIniPath()
 {
     wchar_t* localAppData = nullptr;
@@ -60,15 +64,16 @@ std::wstring GetIniPath()
         CoTaskMemFree(localAppData);
         path += L"\\TaskbarWidget";
         CreateDirectoryW(path.c_str(), nullptr);
-        path += L"\\TaskbarWidget.ini";
+        path += L"\\";
+        path += EDITION_INI_NAME;
         return path;
     }
     wchar_t path[MAX_PATH]{};
     GetModuleFileNameW(nullptr, path, MAX_PATH);
     std::wstring wpath = path;
     size_t dot = wpath.find_last_of(L'.');
-    if (dot != std::wstring::npos) wpath.replace(dot, std::wstring::npos, L".ini");
-    else wpath += L".ini";
+    if (dot != std::wstring::npos) wpath.replace(dot, std::wstring::npos, EDITION_FALLBACK_EXT);
+    else wpath += EDITION_FALLBACK_EXT;
     return wpath;
 }
 
@@ -101,9 +106,9 @@ void SaveConfig(State* s)
             GetModuleFileNameW(nullptr, exePath, MAX_PATH);
             std::wstring runCmd = std::wstring(L"\"") + exePath + L"\" --autostart";
             DWORD dataSize = static_cast<DWORD>((runCmd.length() + 1) * sizeof(wchar_t));
-            RegSetValueExW(hKey, L"SysBar", 0, REG_SZ, reinterpret_cast<const BYTE*>(runCmd.c_str()), dataSize);
+            RegSetValueExW(hKey, EDITION_RUN_NAME, 0, REG_SZ, reinterpret_cast<const BYTE*>(runCmd.c_str()), dataSize);
         } else {
-            RegDeleteValueW(hKey, L"SysBar");
+            RegDeleteValueW(hKey, EDITION_RUN_NAME);
         }
         RegCloseKey(hKey);
     }
@@ -125,6 +130,15 @@ void LoadConfig(State* s)
         swprintf_s(key, L"Param%d", i);
         int defVal = def.enabled[i] ? 1 : 0;
         s->cfg.enabled[i] = GetPrivateProfileIntW(L"Params", key, defVal, p.c_str()) != 0;
+    }
+
+    int normal = 0, pairs = 0;
+    for (int i = 0; i < P_COUNT; ++i) {
+        if (!s->cfg.enabled[i]) continue;
+        int n = normal + (PARAMS[i].isFixedPair ? 0 : 1);
+        int p = pairs + (PARAMS[i].isFixedPair ? 1 : 0);
+        if (n + 2 * p > 2 * s->cfg.columnLimit() || (n + 1) / 2 + p > s->cfg.columnLimit()) s->cfg.enabled[i] = false;
+        else { normal = n; pairs = p; }
     }
 
     wchar_t wbuf[512]{};

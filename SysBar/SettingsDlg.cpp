@@ -75,7 +75,7 @@ static LRESULT CALLBACK SettingsWndProc(HWND hDlg, UINT msg, WPARAM wParam, LPAR
         SendMessageW(lblNote, WM_SETFONT, (WPARAM)hFont, TRUE);
         y += 34;
 
-        HWND lblSep = CreateWindowExW(0, L"STATIC", L"\u2500\u2500\u2500 Display Parameters (max 10) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500", WS_CHILD | WS_VISIBLE, 10, y, 490, 16, hDlg, nullptr, cs->hInstance, nullptr);
+        HWND lblSep = CreateWindowExW(0, L"STATIC", ctx->s->cfg.columnLimit() == 3 ? L"Display Parameters (max 6 numbers / 3 columns)" : L"Display Parameters (max 12 numbers / 6 columns)", WS_CHILD | WS_VISIBLE, 10, y, 490, 16, hDlg, nullptr, cs->hInstance, nullptr);
         SendMessageW(lblSep, WM_SETFONT, (WPARAM)hFont, TRUE);
         y += 20;
 
@@ -251,9 +251,9 @@ static LRESULT CALLBACK SettingsWndProc(HWND hDlg, UINT msg, WPARAM wParam, LPAR
                 }
             }
             int colCount = (normalCount + 1) / 2 + fixedCount;
-            if (colCount > MAX_COLS) {
+            if (colCount > ctx->s->cfg.columnLimit() || normalCount + 2 * fixedCount > 2 * ctx->s->cfg.columnLimit()) {
                 wchar_t msg[128];
-                swprintf_s(msg, L"Selection would require %d columns (max %d). Please deselect some parameters.", colCount, MAX_COLS);
+                swprintf_s(msg, L"Selection would require %d columns (max %d). Please deselect some parameters.", colCount, ctx->s->cfg.columnLimit());
                 SetDlgItemTextW(hDlg, IDC_STATUS_LABEL, msg);
                 return 0;
             }

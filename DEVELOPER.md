@@ -1,7 +1,7 @@
-# SysBar — Developer Documentation
+# SysBar Free — Developer Documentation
 
 **Author:** Mutant Wizard  
-**Version:** 1.2.1  
+**Version:** 1.3.0<br>
 **Platform:** Windows 10 1809+ x64  
 **Stack:** Win32 + DirectComposition + D2D1.1 + DWrite + D3D11  
 
@@ -9,13 +9,13 @@
 
 ## Table of Contents
 
-1.[Build Instructions](#build-instructions)
+1. [Build Instructions](#build-instructions)
 2. [Project Structure](#project-structure)
 3. [Architecture](#architecture)
 4. [Sensor Discovery System](#sensor-discovery-system)
 5. [Changelog](#changelog)
 6. [Contributing Guidelines](#contributing-guidelines)
-7. [Store Submission Notes](#store-submission-notes)
+7. [Settings and Startup](#settings-and-startup)
 8. [Licence](#licence)
 
 ---
@@ -33,21 +33,16 @@
 
 ### Build steps
 
-1. Open `SysBar.sln` in Visual Studio 2022
-2. Set configuration to **Debug x64** for development
-3. **Build → Build Solution** (`Ctrl+Shift+B`)
-4. Output: `x64\Debug\SysBar.exe`
+1. Open `SysBar.sln` in Visual Studio 2022.
+2. Select the **ReleaseFree** configuration and **x64** platform.
+3. Choose **Build → Build Solution** (`Ctrl+Shift+B`).
+4. Run `x64\ReleaseFree\SysBar.exe`.
 
-### Release build
+**Command line** (from a Visual Studio Developer PowerShell)
 
-1. Set configuration to **Release x64**
-2. **Build → Rebuild Solution**
-3. Output: `x64\Release\SysBar.exe`
-4. Release build differences vs Debug:
-   - Full optimisation (`/O2`, `/GL`, `/LTCG`)
-   - No PDB / debug symbols
-   - `_DEBUG` macro undefined — `HR()` error dialogs suppressed
-   - Approximately 300–600 KB EXE vs 5–10 MB Debug
+```powershell
+MSBuild.exe SysBar.sln /p:Configuration=ReleaseFree /p:Platform=x64
+```
 
 ### Runtime dependency
 
@@ -61,7 +56,7 @@ All library dependencies are declared inline in source files:
 user32.lib  gdi32.lib  shell32.lib  ole32.lib
 dcomp.lib   d3d11.lib  dxgi.lib
 d2d1.lib    dwrite.lib winhttp.lib
-dwmapi.lib  uxtheme.lib
+dwmapi.lib  uxtheme.lib  comctl32.lib  version.lib
 ```
 
 ---
@@ -78,7 +73,7 @@ SysBar/
 ├── Renderer.h/.cpp       # D3D11/DXGI/D2D/DComp init, ResizeSwapChain(), Draw()
 ├── Sensor.h/.cpp         # HTTP fetch, JSON parse, sensor discovery, ExtractValues()
 ├── SettingsDlg.h/.cpp    # Settings window — port, param checkboxes, GPU/disk/NIC selectors
-├── HelpDlg.h/.cpp        # Help window — scrollable reference text
+├── HelpDlg.h/.cpp        # About dialog and Help menu links
 ├── Main.cpp              # wWinMain, WndProc, message loop, single-instance mutex, Timer
 ├── json.hpp              # nlohmann/json single-header library (MIT licence)
 ├── SysBar.vcxproj.filters  # Visual Studio filter groups
@@ -116,7 +111,7 @@ This is the lowest-level composited transparency available on Windows. The swap 
 
 ### Shell integration
 
-SysBar is a **top-level `WS_POPUP` window** registered with the shell via `SHAppBarMessage`. This is the documented extensibility point for taskbar widgets — the same mechanism used by third-party taskbars. It is fully MS Store compliant.
+SysBar is a **top-level `WS_POPUP` window** registered with the shell via `SHAppBarMessage`.
 
 ```cpp
 SHAppBarMessage(ABM_NEW)     // register on startup
@@ -160,7 +155,14 @@ On first poll (and every 60 seconds), `DiscoverSensors()` inspects the parsed ha
 
 ## Changelog
 
-### 1.2.1 — Current release
+### 1.3.0
+
+- SysBar Free displays up to six numbers across three columns. Disk and network pairs each count as two numbers.
+- Updated the Help links and menu icon colors. About reads the running executable’s version.
+- Fall back to available network adapters when saved adapter paths no longer match.
+- The Free edition removes the old Go Pro menu item and the left-click Task Manager shortcut.
+
+### 1.2.1
 **Features & UX Improvements**
 - Standardized Context Menu: Completely redesigned the right-click menu to match the new unified layout used across the Mutant Wizard app ecosystem.
 - Native Menu Icons: Implemented a strict, pixel-perfect two-column menu layout. The menu now features custom-generated, 32-bpp transparent icons (converted from Segoe UI Emojis) seamlessly embedded via native Win32 HBITMAP rendering.
@@ -209,30 +211,10 @@ On first poll (and every 60 seconds), `DiscoverSensors()` inspects the parsed ha
 
 ---
 
-## Store Submission Notes
+## Settings and Startup
 
-### Package type
-MSIX packaged Win32 — `runFullTrust` capability required.
+Free stores its settings in `%LOCALAPPDATA%\TaskbarWidget\TaskbarWidget.Free.ini`. If the local app-data folder is unavailable, it uses `SysBar.Free.ini` beside the executable. The startup checkbox controls the `SysBar.Free` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 
-### Required manifest capability
-```xml
-<Capabilities>
-  <rescap:Capability Name="runFullTrust" />
-</Capabilities>
-```
+## Licence
 
-### Minimum version
-```xml
-<TargetDeviceFamily Name="Windows.Desktop"
-    MinVersion="10.0.17763.0"
-    MaxVersionTested="10.0.26100.0" />
-```
-
-### INI file location
-Config is written to `%LOCALAPPDATA%\SysBar\SysBar.ini`. This path is writable in the MSIX sandbox. No registry writes are required for config, but the `Run` key is used natively for Auto-Start.
-
-### What does NOT require special capabilities
-- `WinHTTP` to localhost — no network capability needed (loopback is exempt)
-- `SHAppBarMessage` — no special capability needed
-- `DirectComposition` / D3D11 — no special capability needed
-- Standard Registry `Run` keys — MSIX virtualises these into native Startup Tasks without breaking the sandbox.
+See the [README licence section](README.md#licence) for the terms that apply to SysBar Free.

@@ -1,10 +1,12 @@
-# SysBar — Hardware Monitor for Windows<br><br><br>
+# SysBar Free — Hardware Monitor for Windows<br><br><br>
 
-**Live CPU, GPU, RAM, Network and Disk stats — right on your Windows taskbar.**
+**SysBar Free v1.3.0 displays live CPU, GPU, RAM, network, and disk stats on your Windows taskbar.**
 
 SysBar is a lightweight, transparent taskbar widget that displays real-time hardware sensor data directly alongside your system clock. No overlay windows, no floating panels — just clean, always-visible stats that feel native to Windows.
 
 ## Preview
+
+Screenshots show an earlier release. See the configuration guide below for the current Free menus.
 
 **Main Interface**
 
@@ -42,7 +44,7 @@ SysBar is a lightweight, transparent taskbar widget that displays real-time hard
 
 - **Taskbar-native display** — sits permanently to the left of the notification area, exactly like the Windows clock
 - **Native Light/Dark Mode** — dialogs, menus, and widget text automatically adapt to your Windows theme preferences in real-time
-- **Quick Task Manager access** — simply left-click the widget to instantly open Windows Task Manager
+- **Free display limit** — choose up to six displayed numbers across three columns
 - **Auto-start with Windows** — easily toggleable in settings, featuring a smart 5-second delay to ensure LibreHardwareMonitor and your taskbar are fully loaded before appearing
 - **Real-time sensor data** — updates every 2 seconds with zero perceptible CPU impact
 - **Fully configurable** — choose exactly which parameters to display via right-click Settings
@@ -50,7 +52,7 @@ SysBar is a lightweight, transparent taskbar widget that displays real-time hard
 - **Automatic sensor discovery** — detects your hardware configuration from LibreHardwareMonitor at runtime; works across CPU vendors, GPU vendors, and LHM versions without reconfiguration
 - **Per-pixel transparency** — GPU-composited via DirectComposition; zero background flicker
 - **Network aggregation** — automatically sums all physical network adapters into a single Up/Down figure; virtual, Bluetooth and tunnel adapters excluded
-- **No ads. No telemetry. No internet access.** All data comes from your local LibreHardwareMonitor instance.
+- **No ads or telemetry.** Sensor data comes from your local LibreHardwareMonitor instance.
 
 ---
 
@@ -91,11 +93,10 @@ SysBar reads sensor data from **LibreHardwareMonitor (LHM)**, which must be runn
 
 1. Start LibreHardwareMonitor as Administrator with Remote Web Server enabled
 2. Launch SysBar — the widget appears immediately to the left of your system clock
-3. **Left-click** the widget at any time to open Task Manager
-4. **Right-click** the widget → **Settings** to configure
-5. Select which parameters to display, your GPU, and your preferred network adapters
-6. Tick **Run SysBar automatically on Windows startup**
-7. Click **Save**
+3. **Right-click** the widget → **Settings** to configure it
+4. Select which parameters to display, your GPU, and your preferred network adapters
+5. To start SysBar when you sign in, tick **Run SysBar automatically on Windows startup**
+6. Click **Save**
 
 *Note: If SysBar starts automatically with Windows, it will remain invisible for the first 5 seconds to ensure your taskbar icons and LibreHardwareMonitor have finished loading.*
 
@@ -107,15 +108,15 @@ Right-click the widget to access the context menu:
 
 | Menu Item | Action |
 |---|---|
-| Settings... | Opens the configuration panel |
-| Help... | Opens this reference in a scrollable window |
-| Close Widget | Exits SysBar |
+| **Settings** | Opens the configuration panel |
+| **Help** | Opens a submenu with User Guide, Tech Support, About, License, Explore More Apps, and Support the Project |
+| **Exit** | Exits SysBar |
 
 ### Settings Panel
 
 **LHM Port** — The port SysBar uses to connect to LibreHardwareMonitor's Remote Web Server. Default is `8085`.
 
-**Display Parameters** — Tick the parameters you want displayed. Each parameter shows its widget label in brackets for reference. Maximum 6 columns total.
+**Display Parameters** — Tick the parameters you want displayed. Free supports up to **six numbers across three columns**. Disk Read+Write and Network Up+Down each count as two numbers and use one column.
 
 **GPU / Disk / Network Adapters** — Select which hardware to monitor. Populated live from LHM when Settings is opened.
 
@@ -146,9 +147,9 @@ Right-click the widget to access the context menu:
 
 1. Clone the repository
 2. Open `SysBar.sln` in Visual Studio 2022
-3. Set configuration to **Release x64**
+3. Select the **ReleaseFree** configuration and the **x64** platform
 4. **Build → Build Solution** (`Ctrl+Shift+B`)
-5. Output: `x64\Release\SysBar.exe`
+5. Output: `x64\ReleaseFree\SysBar.exe`
 
 For full build documentation, architecture details, and contributing guidelines see [`DEVELOPER.md`](DEVELOPER.md).
 
@@ -156,7 +157,7 @@ For full build documentation, architecture details, and contributing guidelines 
 
 ## Privacy
 
-SysBar does not collect, transmit, or store any personal data. It makes no outbound network connections. All sensor data is fetched from LibreHardwareMonitor running locally on the same machine via loopback (`127.0.0.1`).
+SysBar does not collect personal data. It fetches sensor data from LibreHardwareMonitor on the same machine via loopback (`127.0.0.1`). Website links open in your browser.
 
 Full privacy policy: [truetropical.github.io/privacy.html](https://truetropical.github.io/privacy.html)
 

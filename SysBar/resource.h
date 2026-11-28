@@ -8,7 +8,6 @@
 #define IDI_SUPPORT       104
 #define IDI_ABOUT         105
 #define IDI_LICENSE       106
-#define IDI_GOPRO         107
 #define IDI_MOREAPPS      108
 #define IDI_DONATE        109
 #define IDI_EXIT          110

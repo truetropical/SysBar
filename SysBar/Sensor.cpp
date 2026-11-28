@@ -390,7 +390,7 @@ void ExtractValues(State* s, const ParseResult& pr)
 
     if (!s->cfg.nicPaths.empty())
         aggregateNics(s->cfg.nicPaths);
-    else
+    if (s->cfg.nicPaths.empty() || (!found[P_NET_UPDOWN] && !s->netDownFound))
         for (auto& nic : pr.nics)
         {
             if (!upSfx.empty())

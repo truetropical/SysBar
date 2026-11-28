@@ -10,7 +10,7 @@
 void ShowAboutDialog(State* s);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Browser-launched pages (ShellExecute to mrwizard2u.github.io)
+// Browser-launched pages (ShellExecute to truetropical.github.io)
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Opens sysbar-guide.html on the GitHub Pages site in the default browser.

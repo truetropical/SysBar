@@ -18,7 +18,6 @@
 #include "SettingsDlg.h"
 #include "HelpDlg.h"
 #include "ThemeUtil.h"
-#include "resource.h" // Required to load the IDI_ icon definitions
 
 #pragma comment(lib,"user32.lib")
 #pragma comment(lib,"gdi32.lib")
@@ -41,56 +40,74 @@ static HANDLE g_singleInstMutex = nullptr;
 #define IDM_SUPPORT         1008
 #define IDM_ABOUT           1004
 #define IDM_LICENSE         1005
-#define IDM_GOPRO           1012
 #define IDM_EXPLORE         1013
 #define IDM_DONATE          1007
 #define IDM_EXIT            1003
 
-// --- Helper: Converts an HICON to a 32-bpp transparent HBITMAP for native menus ---
-static HBITMAP CreateMenuBitmapFromIcon(HICON hIcon, int width = 16, int height = 16)
+// Render a grayscale glyph mask and convert it to a premultiplied menu bitmap.
+static HBITMAP CreateMenuGlyph(wchar_t glyph)
 {
-    if (!hIcon) return nullptr;
-
     BITMAPINFO bmi{};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth = width;
-    bmi.bmiHeader.biHeight = -height; // Top-down DIB
+    bmi.bmiHeader.biWidth = 16;
+    bmi.bmiHeader.biHeight = -16;
     bmi.bmiHeader.biPlanes = 1;
     bmi.bmiHeader.biBitCount = 32;
     bmi.bmiHeader.biCompression = BI_RGB;
-
-    HDC hdcScreen = GetDC(nullptr);
-    HDC hdcMem = CreateCompatibleDC(hdcScreen);
-
-    void* pBits = nullptr;
-    HBITMAP hBmp = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, nullptr, 0);
-    if (hBmp)
-    {
-        HBITMAP hBmpOld = (HBITMAP)SelectObject(hdcMem, hBmp);
-        memset(pBits, 0, width * height * 4); // Ensure memory is cleared (transparent alpha)
-        DrawIconEx(hdcMem, 0, 0, hIcon, width, height, 0, nullptr, DI_NORMAL); // Draw the icon
-        SelectObject(hdcMem, hBmpOld);
+    HDC dc = CreateCompatibleDC(nullptr);
+    if (!dc) return nullptr;
+    void* bits = nullptr;
+    HBITMAP bitmap = CreateDIBSection(dc, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!bitmap) { DeleteDC(dc); return nullptr; }
+    HGDIOBJ oldBitmap = SelectObject(dc, bitmap);
+    memset(bits, 0, 16 * 16 * 4);
+    HFONT font = CreateFontW(-14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+        DEFAULT_PITCH, L"Segoe Fluent Icons");
+    HGDIOBJ oldFont = font ? SelectObject(dc, font) : nullptr;
+    wchar_t face[LF_FACESIZE]{};
+    GetTextFaceW(dc, LF_FACESIZE, face);
+    if (!font || _wcsicmp(face, L"Segoe Fluent Icons") != 0) {
+        if (oldFont) SelectObject(dc, oldFont);
+        if (font) DeleteObject(font);
+        font = CreateFontW(-14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+            DEFAULT_PITCH, L"Segoe MDL2 Assets");
+        oldFont = font ? SelectObject(dc, font) : nullptr;
     }
-
-    DeleteDC(hdcMem);
-    ReleaseDC(nullptr, hdcScreen);
-    return hBmp;
+    SetBkMode(dc, TRANSPARENT);
+    SetTextColor(dc, RGB(255, 255, 255));
+    RECT rect{ 0, 0, 16, 16 };
+    DrawTextW(dc, &glyph, 1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    GdiFlush();
+    HIGHCONTRASTW contrast{ sizeof(contrast) };
+    const bool highContrast = SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0) &&
+        (contrast.dwFlags & HCF_HIGHCONTRASTON);
+    COLORREF color = highContrast ? GetSysColor(COLOR_MENUTEXT) :
+        (IsAppDarkTheme() ? RGB(255, 255, 255) : GetSysColor(COLOR_MENUTEXT));
+    auto pixels = static_cast<unsigned int*>(bits);
+    for (int i = 0; i < 256; ++i) {
+        unsigned int alpha = pixels[i] & 0xff;
+        pixels[i] = (alpha << 24) | ((GetRValue(color) * alpha / 255) << 16) |
+            ((GetGValue(color) * alpha / 255) << 8) | (GetBValue(color) * alpha / 255);
+    }
+    if (oldFont) SelectObject(dc, oldFont);
+    if (font) DeleteObject(font);
+    SelectObject(dc, oldBitmap);
+    DeleteDC(dc);
+    return bitmap;
 }
 
-// --- Helper: Attaches the bitmap to the menu and tracks it for cleanup ---
-static void ApplyMenuIcon(HMENU hMenu, UINT idOrPos, BOOL byPos, HICON hIcon, std::vector<HBITMAP>& tracker)
+static void ApplyMenuGlyph(HMENU menu, UINT idOrPos, BOOL byPos, wchar_t glyph, std::vector<HBITMAP>& tracker)
 {
-    if (!hIcon) return;
-    HBITMAP hBmp = CreateMenuBitmapFromIcon(hIcon);
-    if (hBmp)
-    {
-        tracker.push_back(hBmp);
-        MENUITEMINFOW mii{};
-        mii.cbSize = sizeof(MENUITEMINFOW);
-        mii.fMask = MIIM_BITMAP;
-        mii.hbmpItem = hBmp;
-        SetMenuItemInfoW(hMenu, idOrPos, byPos, &mii);
-    }
+    HBITMAP bitmap = CreateMenuGlyph(glyph);
+    if (!bitmap) return;
+    MENUITEMINFOW item{};
+    item.cbSize = sizeof(item);
+    item.fMask = MIIM_BITMAP;
+    item.hbmpItem = bitmap;
+    if (SetMenuItemInfoW(menu, idOrPos, byPos, &item)) tracker.push_back(bitmap);
+    else DeleteObject(bitmap);
 }
 
 static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM w, LPARAM l)
@@ -176,7 +193,6 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM w, LPARAM l)
         return 1;
 
     case WM_LBUTTONUP:
-        ShellExecuteW(nullptr, L"open", L"taskmgr.exe", nullptr, nullptr, SW_SHOWNORMAL);
         return 0;
 
     case WM_CONTEXTMENU:
@@ -191,7 +207,6 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM w, LPARAM l)
         AppendMenuW(hHelp, MF_STRING, IDM_ABOUT, L"About");
         AppendMenuW(hHelp, MF_STRING, IDM_LICENSE, L"License");
         AppendMenuW(hHelp, MF_SEPARATOR, 0, nullptr);
-        AppendMenuW(hHelp, MF_STRING, IDM_GOPRO, L"Go Pro");
         AppendMenuW(hHelp, MF_STRING, IDM_EXPLORE, L"Explore More Apps");
         AppendMenuW(hHelp, MF_SEPARATOR, 0, nullptr);
         AppendMenuW(hHelp, MF_STRING, IDM_DONATE, L"Support the Project");
@@ -200,38 +215,23 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM w, LPARAM l)
         HMENU menu = CreatePopupMenu();
         AppendMenuW(menu, MF_STRING, IDM_SETTINGS, L"Settings");
 
-        // Append the flyout item. Windows natively adds the ">" arrow to the right.
+        UINT helpPosition = 1;
         AppendMenuW(menu, MF_POPUP, (UINT_PTR)hHelp, L"Help");
+        AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
         AppendMenuW(menu, MF_STRING, IDM_EXIT, L"Exit");
 
         // 3. Apply Native Bitmaps for perfectly aligned columns
         std::vector<HBITMAP> menuBitmaps; // Tracks created bitmaps to delete them later
 
-        // Load custom icons from resources
-        HICON hIconSettings = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_SETTINGS), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconHelp = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_HELP), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconGuide = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_USERGUIDE), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconSupport = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_SUPPORT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconAbout = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_ABOUT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconLicense = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_LICENSE), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconPro = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_GOPRO), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconExplore = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_MOREAPPS), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconDonate = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_DONATE), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-        HICON hIconExit = (HICON)LoadImageW(s->hInst, MAKEINTRESOURCEW(IDI_EXIT), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
-
-        // Apply icons to Main Menu
-        ApplyMenuIcon(menu, IDM_SETTINGS, FALSE, hIconSettings, menuBitmaps);
-        ApplyMenuIcon(menu, 1, TRUE, hIconHelp, menuBitmaps); // Submenus targeted by index position (Help is at Index 1)
-        ApplyMenuIcon(menu, IDM_EXIT, FALSE, hIconExit, menuBitmaps);
-
-        // Apply icons to Help Submenu
-        ApplyMenuIcon(hHelp, IDM_INSTRUCTIONS, FALSE, hIconGuide, menuBitmaps);
-        ApplyMenuIcon(hHelp, IDM_SUPPORT, FALSE, hIconSupport, menuBitmaps);
-        ApplyMenuIcon(hHelp, IDM_ABOUT, FALSE, hIconAbout, menuBitmaps);
-        ApplyMenuIcon(hHelp, IDM_LICENSE, FALSE, hIconLicense, menuBitmaps);
-        ApplyMenuIcon(hHelp, IDM_GOPRO, FALSE, hIconPro, menuBitmaps);
-        ApplyMenuIcon(hHelp, IDM_EXPLORE, FALSE, hIconExplore, menuBitmaps);
-        ApplyMenuIcon(hHelp, IDM_DONATE, FALSE, hIconDonate, menuBitmaps);
+        ApplyMenuGlyph(menu, IDM_SETTINGS, FALSE, 0xE713, menuBitmaps);
+        ApplyMenuGlyph(menu, helpPosition, TRUE, 0xE897, menuBitmaps);
+        ApplyMenuGlyph(menu, IDM_EXIT, FALSE, 0xE711, menuBitmaps);
+        ApplyMenuGlyph(hHelp, IDM_INSTRUCTIONS, FALSE, 0xE8A5, menuBitmaps);
+        ApplyMenuGlyph(hHelp, IDM_SUPPORT, FALSE, 0xE95B, menuBitmaps);
+        ApplyMenuGlyph(hHelp, IDM_ABOUT, FALSE, 0xE946, menuBitmaps);
+        ApplyMenuGlyph(hHelp, IDM_LICENSE, FALSE, 0xE8D7, menuBitmaps);
+        ApplyMenuGlyph(hHelp, IDM_EXPLORE, FALSE, 0xE71D, menuBitmaps);
+        ApplyMenuGlyph(hHelp, IDM_DONATE, FALSE, 0xEB51, menuBitmaps);
 
         // --- Execute Menu ---
         APPBARDATA abd{ sizeof(abd) };
@@ -274,10 +274,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM w, LPARAM l)
         case IDM_LICENSE:      OpenLicense();          break;
         case IDM_DONATE:       OpenDonationPage();     break;
         case IDM_EXPLORE:
-            ShellExecuteW(nullptr, L"open", L"https://mrwizard2u.github.io/", nullptr, nullptr, SW_SHOWNORMAL);
-            break;
-        case IDM_GOPRO:
-            MessageBoxW(h, L"Pro features activation coming soon to the MS Store.", L"Go Pro", MB_OK | MB_ICONINFORMATION);
+            ShellExecuteW(nullptr, L"open", L"https://truetropical.github.io/", nullptr, nullptr, SW_SHOWNORMAL);
             break;
         case IDM_EXIT:         DestroyWindow(h);       break;
         }

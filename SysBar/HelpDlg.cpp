@@ -3,12 +3,15 @@
 #include "DialogUtils.h"
 #include "ThemeUtil.h"
 #include <commctrl.h>
+#include <winver.h>
+#include <vector>
 
+#pragma comment(lib, "version.lib")
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "shell32.lib")
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
-static const wchar_t* SITE_BASE = L"https://mrwizard2u.github.io";
+static const wchar_t* SITE_BASE = L"https://truetropical.github.io";
 
 #define IDC_SYSLINK 201
 
@@ -63,8 +66,7 @@ static void RegisterDialogClass(const wchar_t* className, WNDPROC proc, HINSTANC
 
 static const wchar_t* ABOUT_TEXT =
 L"SysBar \u2014 Real-Time Hardware Monitor\r\n"
-L"Version 1.1.5 \u2014 Windows 10 1809+ | x64\r\n"
-L"Author: Mutant Wizard (<a href=\"https://mrwizard2u.github.io\">mrwizard2u.github.io</a>)\r\n\r\n"
+L"Author: Mutant Wizard (<a href=\"https://truetropical.github.io\">truetropical.github.io</a>)\r\n\r\n"
 L"A lightweight, transparent taskbar widget that displays real-time "
 L"hardware sensor data alongside your system clock. No ads. No telemetry. "
 L"No internet access. All data comes from your local LibreHardwareMonitor instance.\r\n\r\n"
@@ -73,7 +75,26 @@ L"ATTRIBUTION\r\n\r\n"
 L"LibreHardwareMonitor\r\n  Sensor data provider. License: MPL-2.0\r\n  <a href=\"https://github.com/LibreHardwareMonitor/LibreHardwareMonitor\">github.com/LibreHardwareMonitor</a>\r\n\r\n"
 L"nlohmann/json\r\n  JSON parsing library. License: MIT\r\n  <a href=\"https://github.com/nlohmann/json\">github.com/nlohmann/json</a>\r\n\r\n"
 L"All other code copyright \u00a9 2026 Mutant Wizard.\r\n\r\n"
-L"Full details: <a href=\"https://mrwizard2u.github.io/sysbar-about.html\">mrwizard2u.github.io/sysbar-about.html</a>";
+L"Full details: <a href=\"https://truetropical.github.io/sysbar/sysbar-about.html\">truetropical.github.io/sysbar/sysbar-about.html</a>";
+
+static std::wstring GetAboutVersion()
+{
+    std::vector<wchar_t> path(32768);
+    DWORD length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+    if (!length || length >= path.size()) return L"Version unavailable";
+    DWORD ignored = 0;
+    DWORD size = GetFileVersionInfoSizeW(path.data(), &ignored);
+    if (!size) return L"Version unavailable";
+    std::vector<BYTE> data(size);
+    if (!GetFileVersionInfoW(path.data(), 0, size, data.data())) return L"Version unavailable";
+    VS_FIXEDFILEINFO* info = nullptr;
+    UINT infoSize = 0;
+    if (!VerQueryValueW(data.data(), L"\\", reinterpret_cast<void**>(&info), &infoSize) ||
+        infoSize < sizeof(VS_FIXEDFILEINFO) || info->dwSignature != 0xFEEF04BD) return L"Version unavailable";
+    return L"Version " + std::to_wstring(HIWORD(info->dwProductVersionMS)) + L"." +
+        std::to_wstring(LOWORD(info->dwProductVersionMS)) + L"." +
+        std::to_wstring(HIWORD(info->dwProductVersionLS));
+}
 
 static State* s_aboutState = nullptr;
 
@@ -90,7 +111,11 @@ static LRESULT CALLBACK AboutWndProc(HWND h, UINT m, WPARAM w, LPARAM l)
         int btnH = 26; int btnY = winH - btnH - margin;
         CreateOKButton(h, cs->hInstance, winW, btnY);
         int textH = btnY - margin - 10;
-        CreateSysLink(h, cs->hInstance, ABOUT_TEXT, margin, margin, winW - (margin * 2), textH);
+        std::wstring about = ABOUT_TEXT;
+        size_t lineEnd = about.find(L"\r\n");
+        if (lineEnd != std::wstring::npos)
+            about.insert(lineEnd + 2, GetAboutVersion() + L" \u2014 Windows 10 1809+ | x64\r\n");
+        CreateSysLink(h, cs->hInstance, about.c_str(), margin, margin, winW - (margin * 2), textH);
         return 0;
     }
     
